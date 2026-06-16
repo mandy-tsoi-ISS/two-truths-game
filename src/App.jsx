@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
 // Your official Google Sheet Published CSV Link
-const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdpK4Jl8RUOqDMj2AwFVftHEThA-OU7JVz32sP4pnjaXrWFwH_ASy06hDtdsfnQIzmF5dOsZ-8awA2/pub?output=csv";
+const GOOGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdpK4Jl8RUOqDMj2AwFVftHEThA-OU7JVz32sP4pnjaXrWFwH_ASy06hDtdsfnQIzmF5dOsZ-8awA2/pub?output=csv";
+
+// Free, public proxy that unlocks Google's CORS security wall
+const LIVE_SHEET_CSV_URL = `https://corsproxy.io/?${encodeURIComponent(GOOGLE_CSV_URL)}`;
 
 function App() {
   const [players, setPlayers] = useState([]);
@@ -48,6 +51,7 @@ function App() {
     }
 
     return dataRows.map(row => {
+      // 0: Timestamp, 1: Name, 2: S1, 3: S1_Type, 4: S2, 5: S2_Type, 6: S3, 7: S3_Type
       const statements = [
         { text: row[2], type: row[3] },
         { text: row[4], type: row[5] },
@@ -68,7 +72,7 @@ function App() {
     setError(null);
     try {
       const response = await fetch(LIVE_SHEET_CSV_URL);
-      if (!response.ok) throw new Error('Failed to fetch data from your Google Sheet. Make sure it is Published to the Web as a CSV.');
+      if (!response.ok) throw new Error('Failed to download data from your Google Sheet framework stream.');
       const textData = await response.text();
       
       const parsed = parseCSV(textData);
@@ -174,7 +178,7 @@ function App() {
               }
 
               if (isRevealed) {
-                const isLie = stmt.type.toLowerCase() === 'lie';
+                const isLie = stmt.type?.toLowerCase() === 'lie';
                 if (isLie) {
                   cardBg = '#064e3b';
                   cardBorder = '2px solid #10b981';
@@ -211,7 +215,7 @@ function App() {
                     <span style={{ fontWeight: 'bold', color: '#64748b', fontSize: '1.1rem' }}>Statement #{idx + 1}</span>
                     {titleBadge}
                   </div>
-                  <p style={{ fontSize: '1.25rem', margin: 0, color: isRevealed && stmt.type.toLowerCase() !== 'lie' ? '#64748b' : '#f8fafc', lineHeight: '1.5' }}>
+                  <p style={{ fontSize: '1.25rem', margin: 0, color: isRevealed && stmt.type?.toLowerCase() !== 'lie' ? '#64748b' : '#f8fafc', lineHeight: '1.5' }}>
                     "{stmt.text}"
                   </p>
                 </div>
