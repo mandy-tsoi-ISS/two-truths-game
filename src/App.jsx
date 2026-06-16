@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// Method 2: Query Engine API for direct, stable data streaming
+// API link for your Google Sheet
 const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1nj3t7atv7BCq8UaODjmZr01eA4LwcIR5FSLehXLk9O0/gviz/tq?tqx=out:csv&sheet=Form%20responses%201";
 
 function App() {
@@ -32,17 +32,19 @@ function App() {
       return result;
     };
 
+    // Skip the header row and map based on your column structure:
+    // row[1]=Name, row[2]=Truth1, row[3]=Truth2, row[4]=Lie
     return lines.slice(1)
       .filter(line => line.trim())
       .map(line => parseLine(line))
-      .filter(row => row.length >= 8)
+      .filter(row => row.length >= 5)
       .map(row => ({
-        name: row[2] || 'Anonymous',
-        statements: [...[
-          { text: row[3], type: row[4] },
-          { text: row[5], type: row[6] },
-          { text: row[7], type: row[8] }
-        ]].sort(() => Math.random() - 0.5)
+        name: row[1] || 'Anonymous',
+        statements: [
+          { text: row[2], type: 'Truth' },
+          { text: row[3], type: 'Truth' },
+          { text: row[4], type: 'Lie' }
+        ].sort(() => Math.random() - 0.5)
       }));
   };
 
@@ -51,13 +53,12 @@ function App() {
     setError(null);
     try {
       const response = await fetch(LIVE_SHEET_CSV_URL);
-      if (!response.ok) throw new Error('Connection failed. Verify "Anyone with the link can view".');
+      if (!response.ok) throw new Error('Failed to connect. Check sheet permissions.');
       
       const textData = await response.text();
-      if (textData.includes("error")) throw new Error('Data format error. Verify sheet name "Form responses 1".');
-      
       const parsed = parseCSV(textData);
-      if (parsed.length === 0) throw new Error('Sheet is connected but contains no data entries.');
+      
+      if (parsed.length === 0) throw new Error('No data found. Ensure your sheet is public.');
       
       setPlayers(parsed);
       setCurrentPlayer(parsed[Math.floor(Math.random() * parsed.length)]);
@@ -72,41 +73,41 @@ function App() {
 
   const handleConfirmReveal = () => {
     setIsRevealed(true);
-    const isCorrect = currentPlayer.statements[selectedStatement].type?.toLowerCase() === 'lie';
+    const isCorrect = currentPlayer.statements[selectedStatement].type === 'Lie';
     setStats(prev => ({ correct: prev.correct + (isCorrect ? 1 : 0), total: prev.total + 1 }));
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem', fontFamily: 'sans-serif', color: '#fff', backgroundColor: '#0f172a', minHeight: '100vh' }}>
-      <header style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h1>Two Truths and a Lie 🎲</h1>
-        <div style={{ background: '#1e293b', padding: '10px', borderRadius: '20px' }}>
-          Score: {stats.correct} / {stats.total}
-        </div>
-      </header>
+    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px', backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: '12px', textAlign: 'center' }}>
+      <h1>Two Truths and a Lie 🎲</h1>
+      <p>Score: {stats.correct} / {stats.total}</p>
 
-      {loading ? <p>Loading data...</p> : error ? <div style={{ color: '#f87171' }}>Error: {error}</div> : currentPlayer && (
-        <main>
-          <h2>Who is this: {currentPlayer.name}?</h2>
+      {loading ? <p>Loading data...</p> : error ? <p style={{ color: '#fca5a5' }}>{error}</p> : currentPlayer && (
+        <>
+          <h2>Guess the Lie of: {currentPlayer.name}</h2>
           {currentPlayer.statements.map((s, i) => (
             <div 
               key={i} 
               onClick={() => !isRevealed && setSelectedStatement(i)}
               style={{ 
-                padding: '1rem', margin: '10px 0', borderRadius: '8px', cursor: 'pointer',
+                padding: '15px', margin: '10px 0', borderRadius: '8px', cursor: 'pointer',
                 border: selectedStatement === i ? '2px solid #38bdf8' : '1px solid #334155',
-                background: isRevealed ? (s.type.toLowerCase() === 'lie' ? '#064e3b' : '#7f1d1d') : '#1e293b'
+                background: isRevealed ? (s.type === 'Lie' ? '#064e3b' : '#7f1d1d') : '#1e293b'
               }}
             >
               {s.text} {isRevealed && `(${s.type})`}
             </div>
           ))}
           {!isRevealed ? (
-            <button disabled={selectedStatement === null} onClick={handleConfirmReveal}>Lock in Answer</button>
+            <button disabled={selectedStatement === null} onClick={handleConfirmReveal} style={{ marginTop: '20px', padding: '10px 20px' }}>
+              Lock in Answer
+            </button>
           ) : (
-            <button onClick={() => { setIsRevealed(false); setSelectedStatement(null); fetchData(); }}>Next Round</button>
+            <button onClick={() => { setIsRevealed(false); setSelectedStatement(null); fetchData(); }} style={{ marginTop: '20px', padding: '10px 20px' }}>
+              Next Player
+            </button>
           )}
-        </main>
+        </>
       )}
     </div>
   );
