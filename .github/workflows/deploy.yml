@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main # Change this to 'master' if your default branch is master
+      - main  # Triggers deployment on push to the main branch
 
 permissions:
   contents: write
@@ -13,27 +13,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ⚙️
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Install and Build 🔧
-        run: |
-          npm ci
-          npm run build
+      - name: Install Dependencies
+        run: npm ci
 
-      - name: Configure Git Identity 👤
-        run: |
-          git config --global user.email "mandy.tsoi@hk.issworld.com"
-          git config --global user.name "mandy-tsoi-ISS"
+      - name: Build Application
+        run: npm run build
 
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          folder: dist # Vite builds into the 'dist' directory
-          branch: gh-pages # The branch the action will deploy to
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
