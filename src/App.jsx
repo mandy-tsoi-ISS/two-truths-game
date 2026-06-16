@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 // GAME CONFIGURATION
 // ==========================================
 const GAME_CONFIG = {
-  // Change this number to limit how many rounds a user can guess
+  // Change this number to limit the maximum rounds a user can play
   MAX_ROUNDS: 5, 
 };
 
@@ -12,7 +12,7 @@ const GAME_CONFIG = {
 const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1nj3t7atv7BCq8UaODjmZr01eA4LwcIR5FSLehXLk9O0/gviz/tq?tqx=out:csv&sheet=Form%20responses%201";
 
 function App() {
-  const [players, setPlayers] = useState([]);
+  const [shuffledDeck, setShuffledDeck] = useState([]); // Unique, non-duplicate order of players
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [selectedStatement, setSelectedStatement] = useState(null);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -70,8 +70,11 @@ function App() {
       
       if (parsed.length === 0) throw new Error('No data found. Ensure your sheet is public.');
       
-      setPlayers(parsed);
-      setCurrentPlayer(parsed[Math.floor(Math.random() * parsed.length)]);
+      // Create a non-duplicate shuffled deck of players
+      const shuffled = [...parsed].sort(() => Math.random() - 0.5);
+      
+      setShuffledDeck(shuffled);
+      setCurrentPlayer(shuffled[0]); // Start with the first unique person
     } catch (err) {
       setError(err.message);
     } finally {
@@ -90,18 +93,16 @@ function App() {
   };
 
   const handleNextRound = () => {
-    // Check if the user has reached the maximum round limit configured
-    if (currentRound >= GAME_CONFIG.MAX_ROUNDS) {
+    const nextRoundIndex = currentRound; // Index matching the next player card item
+
+    // End game if maximum rounds reached OR if we ran out of unique players in the deck
+    if (nextRoundIndex >= GAME_CONFIG.MAX_ROUNDS || nextRoundIndex >= shuffledDeck.length) {
       setIsGameOver(true);
     } else {
       setIsRevealed(false);
       setSelectedStatement(null);
+      setCurrentPlayer(shuffledDeck[nextRoundIndex]); // Grab the next unique player item sequentially
       setCurrentRound(prev => prev + 1);
-      
-      // Pick a random player for the next round
-      if (players.length > 0) {
-        setCurrentPlayer(players[Math.floor(Math.random() * players.length)]);
-      }
     }
   };
 
@@ -111,19 +112,23 @@ function App() {
     setIsGameOver(false);
     setIsRevealed(false);
     setSelectedStatement(null);
-    fetchData(); // Refresh data from sheet in case new submissions came in
+    fetchData(); // Refreshes and builds a brand new shuffled deck
   };
 
+  // Determine actual maximum possible rounds based on available responses
+  const targetMaxRounds = shuffledDeck.length < GAME_CONFIG.MAX_ROUNDS 
+    ? shuffledDeck.length 
+    : GAME_CONFIG.MAX_ROUNDS;
+
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px', backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: '12px', textAlign: 'center' }}>
+    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px', backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: '12px', textAlign: 'center', fontFamily: 'sans-serif' }}>
       <h1>Two Truths and a Lie 🎲</h1>
       
       {isGameOver ? (
-        // GAME OVER SCREEN
         <div style={{ padding: '20px' }}>
           <h2>🎮 Game Over!</h2>
           <p style={{ fontSize: '1.2rem', margin: '20px 0' }}>
-            You completed all {GAME_CONFIG.MAX_ROUNDS} rounds!
+            You completed all available rounds!
           </p>
           <div style={{ background: '#1e293b', padding: '20px', borderRadius: '8px', fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '20px' }}>
             Final Score: {stats.correct} / {stats.total}
@@ -133,10 +138,9 @@ function App() {
           </button>
         </div>
       ) : (
-        // ACTIVE GAME SCREEN
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', margin: '15px 0', padding: '0 10px', color: '#94a3b8' }}>
-            <span>Round: {currentRound} / {GAME_CONFIG.MAX_ROUNDS}</span>
+            <span>Round: {currentRound} / {targetMaxRounds}</span>
             <span>Score: {stats.correct} / {stats.total}</span>
           </div>
 
@@ -170,7 +174,7 @@ function App() {
                   onClick={handleNextRound} 
                   style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer', backgroundColor: '#38bdf8', border: 'none', borderRadius: '4px', color: '#0f172a', fontWeight: 'bold' }}
                 >
-                  {currentRound >= GAME_CONFIG.MAX_ROUNDS ? "See Final Results 🏆" : "Next Round ➡️"}
+                  {currentRound >= targetMaxRounds ? "See Final Results 🏆" : "Next Round ➡️"}
                 </button>
               )}
             </>
