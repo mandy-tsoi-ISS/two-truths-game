@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 // Your official Google Sheet Published CSV Link
-const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTskfCHx80zWlby_R_B74F-7X8m-1M6Cj1w786A7Vf7_f9r96B3L8m_f7wX-H36kO9R0/pub?output=csv";
+const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdpK4Jl8RUOqDMj2AwFVftHEThA-OU7JVz32sP4pnjaXrWFwH_ASy06hDtdsfnQIzmF5dOsZ-8awA2/pub?output=csv";
 
 function App() {
   const [players, setPlayers] = useState([]);
