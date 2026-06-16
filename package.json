@@ -1,0 +1,21 @@
+{
+  "name": "two-truths-game",
+  "version": "1.0.0",
+  "private": true,
+  "homepage": "https://mandy-tsoi-ISS.github.io/two-truths-game",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "gh-pages": "^6.0.0",
+    "@vitejs/plugin-react": "^4.0.0"
+  }
+}
