@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// Using the official spreadsheet layout API link format to bypass CORS natively
+// Your official live spreadsheet data stream URL mapping
 const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1nj3t7atv7BCq8UaODjmZr01eA4LwcIR5FSLehXLk9O0/gviz/tq?tqx=out:csv&sheet=Form%20Responses%201";
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ correct: 0, total: 0 });
 
-  // Robust CSV line parser that properly splits strings even when statements contain commas
+  // Custom parser optimized for your specific sheet columns
   const parseCSV = (text) => {
     const lines = text.split(/\r?\n/);
     if (lines.length < 2) return [];
@@ -24,7 +24,7 @@ function App() {
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes; // Toggle quote block state
+          inQuotes = !inQuotes;
         } else if (char === ',' && !inQuotes) {
           result.push(current.trim().replace(/^"|"$/g, ''));
           current = '';
@@ -40,25 +40,28 @@ function App() {
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const rowData = parseLine(lines[i]);
-      if (rowData.length >= 7) { // Ensure there are enough columns parsed
+      if (rowData.length >= 8) { 
         dataRows.push(rowData);
       }
     }
 
     return dataRows.map(row => {
-      // Mapping column pairs based on standard Google Form structures:
-      // Index 1: Name, Index 2: S1, Index 3: S1_Type, Index 4: S2, Index 5: S2_Type, Index 6: S3, Index 7: S3_Type
+      // Adjusted column mapping to perfectly match your Sheet columns:
+      // row[1] = Timestamp, row[2] = Your Name
+      // row[3] = Statement 1, row[4] = Statement 1 Type
+      // row[5] = Statement 2, row[6] = Statement 2 Type
+      // row[7] = Statement 3, row[8] = Statement 3 Type
       const statements = [
-        { text: row[2], type: row[3] },
-        { text: row[4], type: row[5] },
-        { text: row[6], type: row[7] }
+        { text: row[3], type: row[4] },
+        { text: row[5], type: row[6] },
+        { text: row[7], type: row[8] }
       ];
       
-      // Shuffle statements so the Lie is randomly placed for the player
+      // Shuffle statements so the Lie is randomly placed for each player
       const shuffledStatements = [...statements].sort(() => Math.random() - 0.5);
       
       return {
-        name: row[1] || 'Anonymous',
+        name: row[2] || 'Anonymous',
         statements: shuffledStatements
       };
     });
@@ -146,7 +149,7 @@ function App() {
 
       {/* Main Game Interface Board */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', fontSize: '1.3rem', color: '#94a3b8' }}>Loading Live Responses From Google Matrix...</div>
+        <div style={{ textAlign: 'center', padding: '3rem', fontSize: '1.3rem', color: '#94a3b8' }}>Loading Live Responses From Google Sheet...</div>
       ) : error ? (
         <div style={{ backgroundColor: '#7f1d1d', border: '1px solid #f87171', padding: '1.5rem', borderRadius: '8px', color: '#fca5a5', textAlign: 'center' }}>
           <strong>Connection Error:</strong> {error}
