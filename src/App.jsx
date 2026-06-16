@@ -1,18 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-// Fallback mock data matching Google Form CSV format exactly
-const MOCK_CSV_DATA = `Timestamp,Your Name,Statement 1,Statement 1 Type,Statement 2,Statement 2 Type,Statement 3,Statement 3 Type
-2026-06-15 10:00:00,Mandy,I can speak 4 languages,Truth,I have bungee jumped off Macau Tower,Lie,I am a certified scuba diver,Truth
-2026-06-15 11:15:00,Alex,I have never broken a bone,Truth,I cooked dinner for a celebrity once,Truth,I hate chocolate ice cream,Lie
-2026-06-15 14:30:00,Sarah,I lived in Japan for two years,Truth,I own three rescue parrots,Lie,I ran a half marathon last month,Truth`;
+// Your official Google Sheet Published CSV Link
+const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTskfCHx80zWlby_R_B74F-7X8m-1M6Cj1w786A7Vf7_f9r96B3L8m_f7wX-H36kO9R0/pub?output=csv";
 
 function App() {
-  // CONFIGURATION: Real-time link updates automatically through the UI dashboard field
-  const [csvUrl, setCsvUrl] = useState(
-    localStorage.getItem('two_truths_csv_url') || ''
-  );
-  const [isUrlSaved, setIsUrlSaved] = useState(!!localStorage.getItem('two_truths_csv_url'));
-  
   const [players, setPlayers] = useState([]);
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [selectedStatement, setSelectedStatement] = useState(null);
@@ -23,12 +14,11 @@ function App() {
 
   // Simple CSV parser supporting standard quotes and commas
   const parseCSV = (text) => {
-    const lines = text.split(/\\r?\\n/);
+    const lines = text.split(/\r?\n/);
     if (lines.length < 2) return [];
     
     const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
     
-    // Helper to safely split fields handling quotes
     const parseLine = (line) => {
       const result = [];
       let current = '';
@@ -57,7 +47,6 @@ function App() {
       }
     }
 
-    // Map rows into clean JSON records based on known indices
     return dataRows.map(row => {
       const statements = [
         { text: row[2], type: row[3] },
@@ -74,26 +63,20 @@ function App() {
     });
   };
 
-  const fetchData = async (urlToFetch, useMock = false) => {
+  const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      let textData = '';
-      if (useMock) {
-        textData = MOCK_CSV_DATA;
-      } else {
-        const response = await fetch(urlToFetch);
-        if (!response.ok) throw new Error('Failed to fetch data from the provided URL');
-        textData = await response.text();
-      }
+      const response = await fetch(LIVE_SHEET_CSV_URL);
+      if (!response.ok) throw new Error('Failed to fetch data from your Google Sheet. Make sure it is Published to the Web as a CSV.');
+      const textData = await response.text();
       
       const parsed = parseCSV(textData);
       if (parsed.length === 0) {
-        throw new Error('No valid participant entries found in the data resource.');
+        throw new Error('No entries found. Please submit the Google Form first!');
       }
       
       setPlayers(parsed);
-      // Pick a random starter player
       const randomIdx = Math.floor(Math.random() * parsed.length);
       setCurrentPlayer(parsed[randomIdx]);
       setSelectedStatement(null);
@@ -106,27 +89,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (isUrlSaved && csvUrl) {
-      fetchData(csvUrl, false);
-    } else if (!isUrlSaved) {
-      // Use mock initial data so game isn't empty on first open
-      fetchData('', true);
-    }
-  }, [isUrlSaved]);
-
-  const handleUrlSubmit = (e) => {
-    e.preventDefault();
-    if (csvUrl.trim()) {
-      localStorage.setItem('two_truths_csv_url', csvUrl.trim());
-      setIsUrlSaved(true);
-    }
-  };
-
-  const handleResetUrl = () => {
-    localStorage.removeItem('two_truths_csv_url');
-    setCsvUrl('');
-    setIsUrlSaved(false);
-  };
+    fetchData();
+  }, []);
 
   const selectRandomPlayer = () => {
     if (players.length <= 1) {
@@ -179,51 +143,13 @@ function App() {
         </div>
       </header>
 
-      {/* CSV Source Configuration section */}
-      <section style={{ backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '12px', border: '1px solid #334155', marginBottom: '2.5rem' }}>
-        <h3 style={{ margin: '0 0 0.75rem 0', color: '#f1f5f9' }}>📊 Live Data Source Configuration</h3>
-        {!isUrlSaved ? (
-          <form onSubmit={handleUrlSubmit} style={{ display: 'table', width: '100%' }}>
-            <div style={{ display: 'table-cell', width: '100%', paddingRight: '1rem' }}>
-              <input 
-                type="url" 
-                placeholder="Paste published Google Sheets CSV URL here..."
-                value={csvUrl}
-                onChange={(e) => setCsvUrl(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', boxSizing: 'border-box' }}
-                required
-              />
-            </div>
-            <div style={{ display: 'table-cell', whiteSpace: 'nowrap' }}>
-              <button type="submit" style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
-                Connect Live Sheet
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-            <p style={{ margin: 0, color: '#4ade80', fontSize: '0.95rem' }}>
-              ✔ Running live data feed connected to your Google Sheet response stream ({players.length} participants loaded).
-            </p>
-            <button onClick={handleResetUrl} style={{ background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '0.4rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>
-              Disconnect / Change Source
-            </button>
-          </div>
-        )}
-        {!isUrlSaved && (
-          <p style={{ margin: '0.7rem 0 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-            💡 Currently displaying placeholder demo stream data. Connect your published Google Sheets CSV link to update the application live.
-          </p>
-        )}
-      </section>
-
       {/* Main Game Interface Board */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', fontSize: '1.3rem', color: '#94a3b8' }}>Loading Data Engine Matrix...</div>
+        <div style={{ textAlign: 'center', padding: '3rem', fontSize: '1.3rem', color: '#94a3b8' }}>Loading Live Responses...</div>
       ) : error ? (
-        <div style={{ backgroundColor: '#7f1d1d', border: '1px solid #f87171', padding: '1rem', borderRadius: '8px', color: '#fca5a5' }}>
-          <strong>Error Connection Node:</strong> {error}
-          <button onClick={() => setIsUrlSaved(false)} style={{ display: 'block', marginTop: '0.5rem', background: '#fff', color: '#000', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}>Reconfigure Link</button>
+        <div style={{ backgroundColor: '#7f1d1d', border: '1px solid #f87171', padding: '1.5rem', borderRadius: '8px', color: '#fca5a5', textAlign: 'center' }}>
+          <strong>Connection Error:</strong> {error}
+          <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Double check that your Google Sheet is published to the web as a CSV file.</p>
         </div>
       ) : currentPlayer ? (
         <main>
@@ -334,7 +260,7 @@ function App() {
           </div>
         </main>
       ) : (
-        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>No data matching parameters engine profile.</div>
+        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>No dynamic answers loaded yet.</div>
       )}
     </div>
   );
