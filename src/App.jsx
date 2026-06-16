@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // Your official live spreadsheet data stream URL mapping
 // Updated with correct case-sensitive tab name: "Form responses 1"
-const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1nj3t7atv7BCq8UaODjmZr01eA4LwcIR5FSLehXLk9O0/gviz/tq?tqx=out:csv&sheet=Form%20responses%201";
+const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdpK4Jl8RUOqDMj2AwFVftHEThA-OU7JVz32sP4pnjaXrWFwH_ASy06hDtdsfnQIzmF5dOsZ-8awA2/pub?gid=1862799175&single=true&output=csv";
 
 function App() {
   const [players, setPlayers] = useState([]);
