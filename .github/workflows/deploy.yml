@@ -1,37 +1,39 @@
-name: Deploy Vite React App to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
-      - main
+      - main # Change this to 'master' if your default branch is master
 
 permissions:
   contents: write
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout 🛎️
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ⚙️
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install and Build 🔧
+        run: |
+          npm ci
+          npm run build
 
-      - name: Configure Git identity
+      - name: Configure Git Identity 👤
         run: |
           git config --global user.email "mandy.tsoi@hk.issworld.com"
           git config --global user.name "mandy-tsoi-ISS"
 
-      - name: Build project
-        run: npm run build
-
-      - name: Deploy to GitHub Pages
-        run: |
-          npx gh-pages-clean
-          npx gh-pages -d dist -r https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mandy-tsoi-ISS/two-truths-game.git
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist # Vite builds into the 'dist' directory
+          branch: gh-pages # The branch the action will deploy to
