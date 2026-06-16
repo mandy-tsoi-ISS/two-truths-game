@@ -32,4 +32,6 @@ jobs:
         run: npm run build
 
       - name: Deploy to GitHub Pages
-        run: npx gh-pages -d dist -r https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mandy-tsoi-ISS/two-truths-game.git
+        run: |
+          npx gh-pages-clean
+          npx gh-pages -d dist -r https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mandy-tsoi-ISS/two-truths-game.git
