@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-// Your official Google Sheet Published CSV Link
-const GOOGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdpK4Jl8RUOqDMj2AwFVftHEThA-OU7JVz32sP4pnjaXrWFwH_ASy06hDtdsfnQIzmF5dOsZ-8awA2/pub?output=csv";
-
-// Free, public proxy that unlocks Google's CORS security wall
-const LIVE_SHEET_CSV_URL = `https://corsproxy.io/?${encodeURIComponent(GOOGLE_CSV_URL)}`;
+// Using the official spreadsheet layout API link format to bypass CORS natively
+const LIVE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1nj3t7atv7BCq8UaODjmZr01eA4LwcIR5FSLehXLk9O0/gviz/tq?tqx=out:csv&sheet=Form%20Responses%201";
 
 function App() {
   const [players, setPlayers] = useState([]);
@@ -15,13 +12,11 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ correct: 0, total: 0 });
 
-  // Simple CSV parser supporting standard quotes and commas
+  // Robust CSV line parser that properly splits strings even when statements contain commas
   const parseCSV = (text) => {
     const lines = text.split(/\r?\n/);
     if (lines.length < 2) return [];
-    
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    
+
     const parseLine = (line) => {
       const result = [];
       let current = '';
@@ -29,7 +24,7 @@ function App() {
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          inQuotes = !inQuotes;
+          inQuotes = !inQuotes; // Toggle quote block state
         } else if (char === ',' && !inQuotes) {
           result.push(current.trim().replace(/^"|"$/g, ''));
           current = '';
@@ -45,19 +40,21 @@ function App() {
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const rowData = parseLine(lines[i]);
-      if (rowData.length >= headers.length) {
+      if (rowData.length >= 7) { // Ensure there are enough columns parsed
         dataRows.push(rowData);
       }
     }
 
     return dataRows.map(row => {
-      // 0: Timestamp, 1: Name, 2: S1, 3: S1_Type, 4: S2, 5: S2_Type, 6: S3, 7: S3_Type
+      // Mapping column pairs based on standard Google Form structures:
+      // Index 1: Name, Index 2: S1, Index 3: S1_Type, Index 4: S2, Index 5: S2_Type, Index 6: S3, Index 7: S3_Type
       const statements = [
         { text: row[2], type: row[3] },
         { text: row[4], type: row[5] },
         { text: row[6], type: row[7] }
       ];
-      // Randomize statements order so the lie isn't always in the same place
+      
+      // Shuffle statements so the Lie is randomly placed for the player
       const shuffledStatements = [...statements].sort(() => Math.random() - 0.5);
       
       return {
@@ -72,12 +69,12 @@ function App() {
     setError(null);
     try {
       const response = await fetch(LIVE_SHEET_CSV_URL);
-      if (!response.ok) throw new Error('Failed to download data from your Google Sheet framework stream.');
+      if (!response.ok) throw new Error('API server grid connection refused.');
       const textData = await response.text();
       
       const parsed = parseCSV(textData);
       if (parsed.length === 0) {
-        throw new Error('No entries found. Please submit the Google Form first!');
+        throw new Error('Google Sheet connected, but no entries were found inside Form Responses 1.');
       }
       
       setPlayers(parsed);
@@ -122,7 +119,7 @@ function App() {
     if (selectedStatement === null) return;
     setIsRevealed(true);
     
-    const isCorrect = currentPlayer.statements[selectedStatement].type.toLowerCase() === 'lie';
+    const isCorrect = currentPlayer.statements[selectedStatement].type?.toLowerCase() === 'lie';
     setStats(prev => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
       total: prev.total + 1
@@ -149,11 +146,13 @@ function App() {
 
       {/* Main Game Interface Board */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', fontSize: '1.3rem', color: '#94a3b8' }}>Loading Live Responses...</div>
+        <div style={{ textAlign: 'center', padding: '3rem', fontSize: '1.3rem', color: '#94a3b8' }}>Loading Live Responses From Google Matrix...</div>
       ) : error ? (
         <div style={{ backgroundColor: '#7f1d1d', border: '1px solid #f87171', padding: '1.5rem', borderRadius: '8px', color: '#fca5a5', textAlign: 'center' }}>
           <strong>Connection Error:</strong> {error}
-          <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Double check that your Google Sheet is published to the web as a CSV file.</p>
+          <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+            Please confirm your Google Sheet is set to "Anyone with the link can view".
+          </p>
         </div>
       ) : currentPlayer ? (
         <main>
